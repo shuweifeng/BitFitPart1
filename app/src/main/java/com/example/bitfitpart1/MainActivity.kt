@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
@@ -20,20 +21,6 @@ class MainActivity : AppCompatActivity() {
 
     private val items = mutableListOf<Item>()
     lateinit var adapter: ItemAdapter
-
-    val getItem = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val returnedIntent = result.data
-            val newItem = returnedIntent?.getSerializableExtra("Result") as Item
-            items.add(newItem)
-            adapter.notifyItemInserted(items.size - 1)
-
-            val newItemEntity = ItemEntity(newItem.itemName, newItem.calories)
-            lifecycleScope.launch(Dispatchers.IO) {
-                (application as ItemApplication).db.itemDao().insert(newItemEntity)
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +33,8 @@ class MainActivity : AppCompatActivity() {
         // Attach the adapter to the RecyclerView to populate items
         itemsRv.adapter = adapter
 
-        //lifecycleScope.launch (Dispatchers.IO){
-         //   (application as ItemApplication).db.itemDao().deleteAll()}
+        // lifecycleScope.launch (Dispatchers.IO){
+        //    (application as ItemApplication).db.itemDao().deleteAll()}
 
 
         lifecycleScope.launch {
@@ -66,33 +53,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set layout manager to position the items
-        itemsRv.layoutManager = LinearLayoutManager(this)
+        itemsRv.layoutManager = LinearLayoutManager(this).also {
+            val dividerItemDecoration = DividerItemDecoration(this, it.orientation)
+            itemsRv.addItemDecoration(dividerItemDecoration)
+        }
 
         findViewById<Button>(R.id.addButton).setOnClickListener {
-
+            // itemsRv.scrollToPosition(items.size - 1)
             val intent = Intent(this, EnterActivity::class.java)
             getItem.launch(intent)
-
-            /*
-            val itemName = findViewById<EditText>(R.id.itemNameEditText).text.toString()
-            val calories = findViewById<EditText>(R.id.caloriesEditText).text.toString()
-            val newItem = Item(itemName, calories)
-            // Add new emails to existing list of emails
-            items.add(newItem)
-            // Notify the adapter there's new emails so the RecyclerView layout is updated
-            adapter.notifyItemInserted(items.size - 1)
-
-            // Add the new item to database
-            val newItemEntity = ItemEntity(itemName, calories)
-            lifecycleScope.launch(Dispatchers.IO) {
-                (application as ItemApplication).db.itemDao().insert(newItemEntity)
-            }
-
-            itemsRv.scrollToPosition(items.size - 1)
-            findViewById<EditText>(R.id.itemNameEditText).text.clear()
-            findViewById<EditText>(R.id.caloriesEditText).text.clear()
-            */
-
         }
 
         adapter.setOnItemLongClickListener(object : ItemAdapter.OnItemLongClickListener {
@@ -105,5 +74,18 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    val getItem = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val returnedIntent = result.data
+            val newItem = returnedIntent?.getSerializableExtra("Result") as Item
+            items.add(newItem)
+            adapter.notifyItemInserted(items.size - 1)
+
+            val newItemEntity = ItemEntity(newItem.itemName, newItem.calories)
+            lifecycleScope.launch(Dispatchers.IO) {
+                (application as ItemApplication).db.itemDao().insert(newItemEntity)
+            }
+        }
+    }
 }
 
